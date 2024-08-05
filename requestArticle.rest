@@ -1,0 +1,43 @@
+######
+// Get all articles
+GET http://localhost:5000/articles
+
+######
+// Get single article
+GET http://localhost:5000/articles/1
+
+
+#####
+// Create article
+POST http://localhost:5000/articles
+Content-Type: application/json
+
+{
+    "AR_Ref": "AR123456",
+    "AR_Design": "Example Article 2",
+    "FA_CodeFamille": "Fam0012",
+    "AR_SuiviStock": 1,
+    "userId": 1,
+    "categorieId": 1,
+    "fournisseurId": 1
+}
+
+#####
+// update article
+PATCH http://localhost:5000/articles/3
+Content-Type: application/json
+
+{
+    "AR_Ref": "AR123456000",
+    "AR_Design": "Example Article 3",
+    "FA_CodeFamille": "Fam0012",
+    "AR_SuiviStock": 1,
+    "userId": 2,
+    "categorieId": 1,
+    "fournisseurId": 1
+}
+
+
+######
+// delete article
+DELETE http://localhost:5000/articles/3

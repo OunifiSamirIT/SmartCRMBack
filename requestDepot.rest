@@ -1,0 +1,70 @@
+######
+// Get all depots
+GET http://localhost:5000/depots
+
+######
+// Get single depot
+GET http://localhost:5000/depots/3
+
+
+#####
+// Create depot
+POST http://localhost:5000/depots
+Content-Type: application/json
+
+{
+    "DE_No": 1,
+    "DE_Intitule": "Depo"
+}
+
+#####
+// update depot
+PATCH http://localhost:5000/depots/2
+Content-Type: application/json
+
+{
+    "DE_No": 123,
+    "DE_Intitule": "Depot1"
+}
+
+
+######
+// delete depot
+DELETE http://localhost:5000/depots/4
+
+
+
+/////******************************//////
+
+
+######
+// Get all categories
+GET http://localhost:5000/categories
+
+######
+// Get single categorie
+GET http://localhost:5000/categories/2
+
+
+#####
+// Create categorie
+POST http://localhost:5000/categories
+Content-Type: application/json
+
+{
+    "name" : "categorie 1"
+}
+
+#####
+// update categorie
+PATCH http://localhost:5000/categories/2
+Content-Type: application/json
+
+{
+    "name" : "categoriie 2"
+}
+
+
+######
+// delete categorie
+DELETE http://localhost:5000/categories/2
