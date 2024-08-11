@@ -21,6 +21,18 @@ export default (sequelize) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
+    profileImage: { // New field
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    roleId: { // Add this field to your model
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    blocked: { // New field to track if the user is blocked
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   });
   User.associate = (models) => {
     User.belongsTo(models.Role, { foreignKey: 'roleId' });

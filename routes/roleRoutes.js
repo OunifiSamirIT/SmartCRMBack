@@ -5,6 +5,6 @@ import authenticate from '../Middleware/authMiddleware.js'; // Middleware to aut
 const router = express.Router();
 
 router.post('/create', authenticate, roleController.addRole);
-router.get('/', authenticate, roleController.getAllRoles);
+router.get('/',  roleController.getAllRoles);
 
 export default router;

@@ -1,8 +1,24 @@
 import db from '../models/index.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import multer from 'multer';
 
-const { User } = db;
+const { User, Role } = db;
+
+
+// Configure multer for image uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/profile-images/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({ storage });
+
 
 
 const login = async (req, res) => {
@@ -14,7 +30,9 @@ const login = async (req, res) => {
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
-
+    if (user.blocked) {
+      return res.status(403).json({ message: 'Your account is blocked' });
+    }
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
@@ -51,22 +69,55 @@ const login = async (req, res) => {
 
 
 const createUser = async (req, res) => {
-  const { email, password, role } = req.body;
+  const { email, password, role ,roleId } = req.body;
+  const { file } = req;
+
+  console.log('Request User:', req.user); // Debugging line
 
   try {
-    const adminUser = await User.findOne({ where: { id: req.user.id, role: 'admin' } });
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const adminUser = await User.findOne({ where: { id: req.user.id, roleId : 1 } });
     if (!adminUser) {
       return res.status(403).json({ message: 'Only admin users can create new users' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ email, password: hashedPassword, role });
+    const hashedPassword = await bcrypt.hash(password, 6);
+    const profileImage = file ? file.path : null;
+    const user = await User.create({ email, password: hashedPassword, role , profileImage ,roleId });
 
-    res.status(201).json({ message: 'User created successfully' });
+    res.status(201).json({ message: 'User created successfully', user });
+  } catch (error) {
+    console.error("Error creating user:", error);
+    res.status(500).json({ message: 'Failed to create user', error: error.message });
+  }
+};
+
+
+
+
+
+
+const blockUser = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.blocked = !user.blocked; // Toggle the blocked status
+    await user.save();
+
+    res.status(200).json({ message: `User ${user.blocked ? 'blocked' : 'unblocked'} successfully`, user });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 const getAllUsers = async (req, res) => {
   try {
@@ -126,4 +177,4 @@ const deleteUser = async (req, res) => {
   }
 };
 
-export default { login, createUser, getAllUsers, getUserById, updateUser, deleteUser };
+export default { login, createUser, getAllUsers,blockUser, getUserById, updateUser, deleteUser };
