@@ -13,6 +13,15 @@ export default (sequelize) => {
       unique: true,
       allowNull: false,
     },
+    adresse: {
+      type: DataTypes.STRING,
+    },
+    age: {
+      type: DataTypes.STRING,
+    },
+    numtelf: {
+      type: DataTypes.STRING,
+    },
     password: {
       type: DataTypes.STRING,
       allowNull: false,

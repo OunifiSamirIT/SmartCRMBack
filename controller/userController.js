@@ -143,8 +143,8 @@ const getUserById = async (req, res) => {
 };
 
 const updateUser = async (req, res) => {
-  const { id } = req.params;
-  const { email, password, role } = req.body;
+  const { id } = req.params; // ID is extracted from params to identify the user
+  const { email, password, role, adresse, age, numtelf } = req.body; // Other fields are extracted from the body
 
   try {
     const user = await User.findByPk(id);
@@ -152,14 +152,49 @@ const updateUser = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const hashedPassword = password ? await bcrypt.hash(password, 10) : user.password;
-    await user.update({ email, password: hashedPassword, role });
+    // Prepare data for updating, excluding the ID
+    const updateData = {
+      email: email || user.email,
+      role: role || user.role,
+      adresse: adresse || user.adresse,
+      age: age || user.age,
+      numtelf: numtelf || user.numtelf,
+    };
 
-    res.status(200).json({ message: 'User updated successfully' });
+    // If a new password is provided, hash it
+    if (password) {
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+
+    // If a new profile image is uploaded, add its path
+    if (req.file) {
+      updateData.profileImage = req.file.path;
+    }
+
+    // Update the user with the new data
+    await user.update(updateData);
+
+    res.status(200).json({ message: 'User updated successfully', user });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
+
+const getMe = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
 
 const deleteUser = async (req, res) => {
   const { id } = req.params;
@@ -177,4 +212,4 @@ const deleteUser = async (req, res) => {
   }
 };
 
-export default { login, createUser, getAllUsers,blockUser, getUserById, updateUser, deleteUser };
+export default { login, createUser,getMe, getAllUsers,blockUser, getUserById, updateUser, deleteUser };

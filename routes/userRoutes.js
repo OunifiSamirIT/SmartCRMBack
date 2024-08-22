@@ -12,8 +12,9 @@ router.post('/create', authenticate, upload.single('profileImage'), userControll
 router.get('/', userController.getAllUsers);
 router.patch('/block/:id', userController.blockUser);
 
-router.get('/:id', authenticate, userController.getUserById);
-router.put('/:id', authenticate, userController.updateUser);
-router.delete('/:id', authenticate, userController.deleteUser);
+router.get('/user/:id',  userController.getUserById);
+router.put('/:id', authenticate, upload.single('profileImage'), userController.updateUser);
 
+router.delete('/:id', authenticate, userController.deleteUser);
+router.get('/me', authenticate, userController.getMe);
 export default router;
