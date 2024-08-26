@@ -1,6 +1,6 @@
 import db from '../models/index.js';
 
-const { Lot } = db;
+const { Lot, Stock, Product } = db;
 
 const addLot = async (req, res) => {
   try {
@@ -11,14 +11,41 @@ const addLot = async (req, res) => {
   }
 };
 
+const updateLotStatus = async (lotId) => {
+  const lot = await Lot.findByPk(lotId, {
+    include: [{ model: Stock, as: 'stocks' }]
+  });
+
+  if (!lot) return;
+
+  const isExhausted = await lot.checkIfExhausted();
+
+  if (lot.LS_LotEpuise !== isExhausted) {
+    lot.LS_LotEpuise = isExhausted;
+    await lot.save();
+  }
+};
+
 const getAllLots = async (req, res) => {
   try {
-    const lots = await Lot.findAll();
-    res.status(200).json(lots);
+    const lots = await Lot.findAll({
+      include: [{ model: Stock, as: 'stocks' }]
+    });
+
+    // Update status for each lot
+    await Promise.all(lots.map(lot => updateLotStatus(lot.id)));
+
+    // Fetch updated lots
+    const updatedLots = await Lot.findAll({
+      include: [{ model: Stock, as: 'stocks' }]
+    });
+
+    res.status(200).json(updatedLots);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 const getLot = async (req, res) => {
   try {

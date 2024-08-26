@@ -35,12 +35,20 @@ export default (sequelize) => {
   });
 
   Lot.associate = (models) => {
+    Lot.hasMany(models.Stock, { foreignKey: 'lotId', as: 'stocks' });
     Lot.belongsTo(models.Depot, {
       foreignKey: 'DE_No',
       as: 'depot',
       onDelete: 'CASCADE',
     });
   };
-
+  Lot.prototype.checkIfExhausted = async function() {
+    const stocks = await this.getStocks();
+    let totalQuantity = 0;
+    for (const stock of stocks) {
+      totalQuantity += await stock.calculateTotalQuantity();
+    }
+    return totalQuantity > this.LS_Qte;
+  };
   return Lot;
 };

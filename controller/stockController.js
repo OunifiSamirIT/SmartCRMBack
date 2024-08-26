@@ -1,15 +1,67 @@
 // controllers/stockController.js
 import db from '../models/index.js';
-const { Product, Stock } = db;
+const { Stock, Product, Lot } = db;
 
-const addStock = async (req, res) => {
+const checkAndUpdateExhaustedStatus = async (stockId) => {
+  const stock = await Stock.findByPk(stockId, {
+    include: [{ model: Product, as: 'products' }, { model: Lot, as: 'lot' }]
+  });
+
+  if (stock) {
+    await stock.checkAndUpdateExhaustedStatus();
+  }
+};
+
+const addProductToStock = async (req, res) => {
   try {
-    const stock = await Stock.create(req.body);
-    res.status(201).json(stock);
+    const { stockId, productId, quantity } = req.body;
+    const stock = await Stock.findByPk(stockId);
+    const product = await Product.findByPk(productId);
+
+    if (!stock || !product) {
+      return res.status(404).json({ message: 'Stock or Product not found' });
+    }
+
+    product.stockId = stockId;
+    product.QuantityInStock = (product.QuantityInStock || 0) + quantity;
+    await product.save();
+
+    await stock.checkAndUpdateExhaustedStatus();
+
+    res.status(200).json({ message: 'Product added to stock successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
+const removeProductFromStock = async (req, res) => {
+  try {
+    const { stockId, productId, quantity } = req.body;
+    const stock = await Stock.findByPk(stockId);
+    const product = await Product.findByPk(productId);
+
+    if (!stock || !product) {
+      return res.status(404).json({ message: 'Stock or Product not found' });
+    }
+
+    if (product.QuantityInStock < quantity) {
+      return res.status(400).json({ message: 'Not enough quantity in stock' });
+    }
+
+    product.QuantityInStock -= quantity;
+    if (product.QuantityInStock === 0) {
+      product.stockId = null;
+    }
+    await product.save();
+
+    await stock.checkAndUpdateExhaustedStatus();
+
+    res.status(200).json({ message: 'Product removed from stock successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const getProductsByStock = async (req, res) => {
   try {
     const { id: stockId } = req.params;
@@ -92,10 +144,11 @@ const deleteStock = async (req, res) => {
 };
 
 export default { 
-  addStock, 
+  addProductToStock, 
   getAllStocks, 
   getStock, 
   updateStock, 
   deleteStock ,
+  removeProductFromStock,
   getProductsByStock  
 };
