@@ -42,13 +42,18 @@ export default (sequelize) => {
       onDelete: 'CASCADE',
     });
   };
-  Lot.prototype.checkIfExhausted = async function() {
-    const stocks = await this.getStocks();
-    let totalQuantity = 0;
-    for (const stock of stocks) {
-      totalQuantity += await stock.calculateTotalQuantity();
-    }
-    return totalQuantity > this.LS_Qte;
+
+  Lot.prototype.checkAndUpdateExhaustedStatus = async function() {
+    const stocks = await this.getStocks({
+      include: [{ model: sequelize.models.Product, as: 'products' }]
+    });
+    
+    let totalProductQuantity = stocks.reduce((sum, stock) => 
+      sum + stock.products.reduce((stockSum, product) => stockSum + product.QuantiteProduct, 0), 0);
+    
+    this.LS_LotEpuise = totalProductQuantity > this.LS_Qte;
+    await this.save();
   };
+
   return Lot;
 };

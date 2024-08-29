@@ -45,18 +45,13 @@ export default (sequelize) => {
     const products = await this.getProducts();
     return products.reduce((sum, product) => sum + product.QuantiteProduct, 0);
 };
-
 Stock.prototype.updateLotStatus = async function() {
-    const lot = await this.getLot();
-    if (lot) {
-        const totalQuantity = await this.calculateTotalQuantity();
-        const isExhausted = totalQuantity > lot.LS_Qte;
-        if (lot.LS_LotEpuise !== isExhausted) {
-            lot.LS_LotEpuise = isExhausted;
-            await lot.save();
-        }
-    }
+  const lot = await this.getLot();
+  if (lot) {
+    await lot.checkAndUpdateExhaustedStatus();
+  }
 };
+
 Stock.beforeSave(async (stock) => {
   const lot = await stock.getLot();
   if (lot) {

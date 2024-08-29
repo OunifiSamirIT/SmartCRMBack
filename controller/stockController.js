@@ -15,7 +15,7 @@ const checkAndUpdateExhaustedStatus = async (stockId) => {
 const addProductToStock = async (req, res) => {
   try {
     const { stockId, productId, quantity } = req.body;
-    const stock = await Stock.findByPk(stockId);
+
     const product = await Product.findByPk(productId);
 
     if (!stock || !product) {
@@ -25,7 +25,12 @@ const addProductToStock = async (req, res) => {
     product.stockId = stockId;
     product.QuantityInStock = (product.QuantityInStock || 0) + quantity;
     await product.save();
+    const stock = await Stock.findByPk(stockId, { include: ['lot'] });
+    if (stock && stock.lot) {
+      await updateLotStatus(stock.lot.id);
+    }
 
+    res.status(200).json({ message: 'Product added to stock successfully' });
     await stock.checkAndUpdateExhaustedStatus();
 
     res.status(200).json({ message: 'Product added to stock successfully' });
@@ -37,7 +42,6 @@ const addProductToStock = async (req, res) => {
 const removeProductFromStock = async (req, res) => {
   try {
     const { stockId, productId, quantity } = req.body;
-    const stock = await Stock.findByPk(stockId);
     const product = await Product.findByPk(productId);
 
     if (!stock || !product) {
@@ -53,7 +57,12 @@ const removeProductFromStock = async (req, res) => {
       product.stockId = null;
     }
     await product.save();
+    const stock = await Stock.findByPk(stockId, { include: ['lot'] });
+    if (stock && stock.lot) {
+      await updateLotStatus(stock.lot.id);
+    }
 
+    res.status(200).json({ message: 'Product added to stock successfully' });
     await stock.checkAndUpdateExhaustedStatus();
 
     res.status(200).json({ message: 'Product removed from stock successfully' });

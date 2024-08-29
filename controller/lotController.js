@@ -15,14 +15,9 @@ const updateLotStatus = async (lotId) => {
   const lot = await Lot.findByPk(lotId, {
     include: [{ model: Stock, as: 'stocks' }]
   });
-
-  if (!lot) return;
-
-  const isExhausted = await lot.checkIfExhausted();
-
-  if (lot.LS_LotEpuise !== isExhausted) {
-    lot.LS_LotEpuise = isExhausted;
-    await lot.save();
+  
+  if (lot) {
+    await lot.checkAndUpdateExhaustedStatus();
   }
 };
 
@@ -61,13 +56,29 @@ const getLot = async (req, res) => {
 
 const updateLot = async (req, res) => {
   try {
-    const [updated] = await Lot.update(req.body, {
-      where: { id: req.params.id }
-    });
-    if (!updated) {
+    const { id } = req.params;
+    const updatedData = req.body;
+
+    const lot = await Lot.findByPk(id);
+    if (!lot) {
       return res.status(404).json({ message: 'Lot not found' });
     }
-    const updatedLot = await Lot.findByPk(req.params.id);
+
+    // Update the lot
+    await lot.update(updatedData);
+
+    // Check and update the exhausted status
+    await lot.checkAndUpdateExhaustedStatus();
+
+    // Fetch the updated lot with its stocks and products
+    const updatedLot = await Lot.findByPk(id, {
+      include: [{
+        model: Stock,
+        as: 'stocks',
+        include: [{ model: Product, as: 'products' }]
+      }]
+    });
+
     res.status(200).json(updatedLot);
   } catch (error) {
     res.status(500).json({ message: error.message });
