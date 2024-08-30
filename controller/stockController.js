@@ -11,6 +11,32 @@ const checkAndUpdateExhaustedStatus = async (stockId) => {
     await stock.checkAndUpdateExhaustedStatus();
   }
 };
+const createStock = async (req, res) => {
+  const t = await db.sequelize.transaction();
+
+  try {
+    const { stockName, categorieId, maxQuantityStock, fournisseurId, lotId, DepotId } = req.body;
+
+    // Create the stock
+    const stock = await Stock.create({
+      stockName,
+      categorieId,
+      maxQuantityStock,
+      productQuantity: 0, // Initialize with 0
+      fournisseurId,
+      lotId,
+      DepotId
+    }, { transaction: t });
+
+    await t.commit();
+
+    res.status(201).json({ message: 'Stock created successfully', stock });
+  } catch (error) {
+    await t.rollback();
+    console.error('Error creating stock:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
 
 const addProductToStock = async (req, res) => {
   try {
@@ -158,6 +184,7 @@ export default {
   getStock, 
   updateStock, 
   deleteStock ,
+  createStock,
   removeProductFromStock,
   getProductsByStock  
 };

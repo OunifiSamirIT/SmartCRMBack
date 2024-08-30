@@ -205,21 +205,42 @@ const updateProduct = async (req, res) => {
 };
 
 const deleteProduct = async (req, res) => {
+  const t = await db.sequelize.transaction();
+
   try {
     const { id } = req.params;
-    const deleted = await Product.destroy({
-      where: { id }
-    });
-    if (deleted) {
-      res.status(204).json({ message: "Product deleted" });
-    } else {
-      res.status(404).json({ message: "Product not found" });
+    
+    // Find the product
+    const product = await Product.findByPk(id, { transaction: t });
+    
+    if (!product) {
+      await t.rollback();
+      return res.status(404).json({ message: "Product not found" });
     }
+
+    // Get the stock and quantity
+    const stockId = product.stockId;
+    const quantityToRemove = product.QuantiteProduct;
+
+    // Delete the product
+    await product.destroy({ transaction: t });
+
+    // Update the stock quantity
+    if (stockId) {
+      const stock = await Stock.findByPk(stockId, { transaction: t });
+      if (stock) {
+        const newQuantity = Math.max(0, stock.productQuantity - quantityToRemove);
+        await stock.update({ productQuantity: newQuantity }, { transaction: t });
+      }
+    }
+
+    await t.commit();
+    res.status(200).json({ message: "Product deleted and stock updated" });
   } catch (error) {
+    await t.rollback();
     res.status(500).json({ message: error.message });
   }
 };
-
 const getProductById = async (req, res) => {
   try {
     const { id } = req.params;

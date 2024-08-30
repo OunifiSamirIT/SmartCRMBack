@@ -1,8 +1,9 @@
-// controllers/commandeClientController.js
 import db from '../models/index.js';
 const { CommandeClient, CommandeProducts, Product, Stock, Facture } = db;
 
 const createCommandeClient = async (req, res) => {
+  const t = await db.sequelize.transaction();
+
   try {
     const { clientName, address, billingDate, deliveryDate, products } = req.body;
 
@@ -12,34 +13,52 @@ const createCommandeClient = async (req, res) => {
       address,
       billingDate,
       deliveryDate,
-    });
+    }, { transaction: t });
 
-    // Create associations with products
-    const commandeProducts = products.map(product => ({
-      commandeClientId: commandeClient.id,
-      productId: product.productId,
-      quantity: product.quantity,
-    }));
-
-    await CommandeProducts.bulkCreate(commandeProducts);
-
-    // Update product quantities and calculate total amount
+    // Create associations with products and update stock
+    const commandeProducts = [];
     let totalAmount = 0;
+
     for (const product of products) {
       const { productId, quantity, price } = product;
-      const productRecord = await Product.findByPk(productId);
+      const productRecord = await Product.findByPk(productId, { transaction: t });
 
-      if (productRecord) {
-        await productRecord.update({
-          QuantiteProductAvalible: productRecord.QuantiteProductAvalible - quantity,
-        });
+      if (!productRecord) {
+        throw new Error(`Product with id ${productId} not found`);
       }
+
+      // Check and update stock
+      const stock = await Stock.findByPk(productRecord.stockId, { transaction: t });
+      if (!stock) {
+        throw new Error(`Stock not found for product ${productId}`);
+      }
+
+      if (stock.productQuantity < quantity) {
+        throw new Error(`Insufficient stock for product ${productRecord.AR_Design}`);
+      }
+
+      await stock.update({
+        productQuantity: stock.productQuantity - quantity
+      }, { transaction: t });
+
+      // Update product's QuantiteProductAvalible
+      await productRecord.update({
+        QuantiteProductAvalible: productRecord.QuantiteProductAvalible - quantity
+      }, { transaction: t });
+
+      commandeProducts.push({
+        commandeClientId: commandeClient.id,
+        productId: productId,
+        quantity: quantity,
+      });
 
       totalAmount += quantity * price;
     }
 
+    await CommandeProducts.bulkCreate(commandeProducts, { transaction: t });
+
     // Generate facture number
-    const factureCount = await Facture.count();
+    const factureCount = await Facture.count({ transaction: t });
     const factureNumber = `FACT-${String(factureCount + 1).padStart(4, '0')}`;
 
     // Create Facture
@@ -48,55 +67,17 @@ const createCommandeClient = async (req, res) => {
       totalAmount,
       typeFacture: 'commande client',
       commandeClientId: commandeClient.id,
-    });
+    }, { transaction: t });
+
+    await t.commit();
 
     res.status(201).json({ commandeClient, facture });
   } catch (error) {
+    await t.rollback();
     console.error('Error creating commandeClient:', error);
     res.status(500).json({ message: error.message });
   }
 };
-
-// const createCommandeClient = async (req, res) => {
-//   try {
-//     const { clientName, address, billingDate, deliveryDate, products } = req.body;
-
-//     // Create CommandeClient
-//     const commandeClient = await CommandeClient.create({
-//       clientName,
-//       address,
-//       billingDate,
-//       deliveryDate,
-//     });
-
-//     // Create associations with products
-//     const commandeProducts = products.map(product => ({
-//       commandeClientId: commandeClient.id,
-//       productId: product.productId,
-//       quantity: product.quantity,
-//     }));
-
-//     await CommandeProducts.bulkCreate(commandeProducts);
-
-//     // Update stock quantities
-//     for (const product of products) {
-//       const { productId, quantity } = product;
-//       const productRecord = await Product.findByPk(productId);
-
-//       if (productRecord && productRecord.stockId) {
-//         const stock = await Stock.findByPk(productRecord.stockId);
-//         if (stock) {
-//           await stock.update({ productQuantity: stock.productQuantity - quantity });
-//         }
-//       }
-//     }
-
-//     res.status(201).json(commandeClient);
-//   } catch (error) {
-//     console.error('Error creating commandeClient:', error);
-//     res.status(500).json({ message: error.message });
-//   }
-// };
 
 const getAllCommandeClients = async (req, res) => {
   try {

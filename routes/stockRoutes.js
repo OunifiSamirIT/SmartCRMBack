@@ -5,6 +5,7 @@ import stockController from '../controller/stockController.js';
 const router = express.Router();
 
 router.post('/', stockController.addProductToStock);
+router.post('/add', stockController.createStock)
 router.get('/', stockController.getAllStocks);
 router.get('/:id', stockController.getStock);
 router.put('/:id', stockController.updateStock);

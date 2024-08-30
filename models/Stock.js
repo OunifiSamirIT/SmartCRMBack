@@ -18,6 +18,11 @@ export default (sequelize) => {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    maxQuantityStock: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
     lotId: {
       type: DataTypes.INTEGER,
       allowNull: false,
