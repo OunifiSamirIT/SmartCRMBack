@@ -7,6 +7,7 @@ const router = express.Router();
 router.post('/', lotController.addLot);
 router.get('/:id', lotController.getLot);
 router.get('/', lotController.getAllLots);
+router.get('/stocks/lot/:lotId', lotController.verifiequantityLot);
 router.put('/:id', lotController.updateLot);
 router.delete('/:id', lotController.deleteLot);
 

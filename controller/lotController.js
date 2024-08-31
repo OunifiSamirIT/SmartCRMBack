@@ -53,7 +53,6 @@ const getLot = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 const updateLot = async (req, res) => {
   try {
     const { id } = req.params;
@@ -66,9 +65,6 @@ const updateLot = async (req, res) => {
 
     // Update the lot
     await lot.update(updatedData);
-
-    // Check and update the exhausted status
-    await lot.checkAndUpdateExhaustedStatus();
 
     // Fetch the updated lot with its stocks and products
     const updatedLot = await Lot.findByPk(id, {
@@ -99,4 +95,27 @@ const deleteLot = async (req, res) => {
   }
 };
 
-export default { addLot, getAllLots, getLot, updateLot, deleteLot };
+
+const verifiequantityLot = async (req, res) => {
+  try {
+    const lotId = req.params.lotId;
+    const stock = await Stock.findOne({
+      where: { lotId: lotId },
+      attributes: ['productQuantity']
+    });
+    
+    if (stock) {
+      const lot = await Lot.findByPk(lotId);
+      if (lot) {
+        await lot.update({ LS_LotEpuise: stock.productQuantity <= 0 });
+      }
+    }
+    
+    res.json(stock || { productQuantity: 0 });
+  } catch (error) {
+    console.error('Error fetching stock for lot:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export default { addLot,verifiequantityLot, getAllLots, getLot, updateLot, deleteLot };
